@@ -1,4 +1,6 @@
 
+import random,time
+
 class chessBoard:
     WHITE = -1
     BLACK = 1
@@ -36,6 +38,7 @@ class chessBoard:
 
         for direction in pair_directions:
             if self.count_direction(i,j,direction,who)>=5:
+                print(i,j)
                 return who
         return 0
 
@@ -48,22 +51,24 @@ class chessBoard:
         di,dj = direction
         count = 0
         while (x>=0 and x<self.row_count) and (y>=0 and y<self.col_count):
-            x = x+di
-            y = y+dj
+
             if self.board[x][y] == who:
                 count += 1
             else:
                 break
+            x = x+di
+            y = y+dj
 
         x,y = i,j
         while (x>=0 and x<self.row_count) and (y>=0 and y<self.col_count):
-            x = x-di
-            y = y-dj
             if self.board[x][y] == who:
                 count += 1
             else:
                 break
-        return count + 1
+            x = x-di
+            y = y-dj
+
+        return count - 1
 
 
     def print_board(self):
@@ -73,15 +78,45 @@ class chessBoard:
         dic = {1:'* ',-1:'# ',0:'. '}
         for row in self.board:
             print("".join([dic[e] for e in row]))
+        print()
 
-class AI:
-    def __init__(self,chess_board=None):
-        if not chess_board:
-            chess_board = chessBoard()
-        self.board = chess_board
-        
+class Player:
+    def __init__(self):
+        self.name = self.get_player_name()
 
-class god:
+    def get_player_name(self):
+        raise NotImplementedError
+
+    def next_move(self,chess_board,who):
+        '''
+        decide the next move
+        chess_board: chessBoard
+        who: chessBoard.WHITE, chessBoard.BLAKC
+        '''
+        raise NotImplementedError
+
+class randomPlayer:
+    def get_player_name(self):
+        return "random player"
+
+    def next_move(self,chess_board,who):
+        '''
+        randomly choose an aviable slot for the next move
+        chess_board: chessBoard
+        who: chessBoard.WHITE, chessBoard.BLAKC
+        '''
+        empty_list = []
+        for i in range(chess_board.row_count):
+            for j in range(chess_board.col_count):
+                if chess_board.board[i][j] == chessBoard.EMPTY:
+                    empty_list.append((i,j))
+        if len(empty_list) == 0:
+            print("game over")
+            return None
+
+        return random.sample(empty_list,1)[0]
+
+class godVision:
     def play(self,player1,player2,wait1=0,wait2=0,print_details=False):
         '''
         simuate play of player1 and player2
@@ -89,12 +124,39 @@ class god:
         wait: wait after every move?
         result:
         '''
+        chess_board = chessBoard()
+        count = 0
+        max_count = chess_board.row_count * chess_board.col_count
+        # player1 -> WHITE
+        # player2 -> BLACK
+        while count < max_count:
+            i,j = player1.next_move(chess_board,chessBoard.WHITE)
+            chess_board.move(i,j,chessBoard.WHITE)
+            if wait1 != 0 and print_details:
+                time.sleep(wait1)
+            status = chess_board.get_status_after_move(i,j)
+            if status != 0:
+                print(status,"win")
+                chess_board.print_board()
+                return status
+
+            i,j = player2.next_move(chess_board,chessBoard.BLACK)
+            chess_board.move(i,j,chessBoard.BLACK)
+            if wait2 != 0 and print_details:
+                time.sleep(wait2)
+            status = chess_board.get_status_after_move(i,j)
+            if status != 0:
+                print(status,"win")
+                chess_board.print_board()
+                return status
+
+            if print_details:
+                chess_board.print_board()
+            count += 2
 
 
 if __name__ == '__main__':
-    chess_board = chessBoard()
-    for i in range(5):
-        chess_board.move(i+3,-i+7,-1)
-    chess_board.print_board()
-    for i in range(8):
-        print(chess_board.get_status_after_move(i+3,i+7))
+    gd = godVision()
+    player1 = randomPlayer()
+    player2 = randomPlayer()
+    gd.play(player1,player2,0,0,True)
